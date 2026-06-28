@@ -1,0 +1,906 @@
+{
+  "dataset": {
+    "n_samples": 800,
+    "n_features": 31,
+    "features": [
+      "latitude",
+      "longitude",
+      "elevation",
+      "slope",
+      "aspect",
+      "ndvi",
+      "ndwi",
+      "mndwi",
+      "evi",
+      "soil_moisture",
+      "rain_24h",
+      "rain_72h",
+      "rain_7d",
+      "temperature",
+      "humidity",
+      "river_distance",
+      "drainage_density",
+      "flow_accumulation",
+      "historical_events",
+      "slope_rainfall_interaction",
+      "soil_saturation_index",
+      "vegetation_degradation_index",
+      "terrain_instability_score",
+      "rainfall_accumulation",
+      "river_proximity_factor",
+      "upstream_catchment_indicator",
+      "rain_intensity_24_72",
+      "log_rain_24h",
+      "log_rain_72h",
+      "log_elevation",
+      "log_flow_acc"
+    ]
+  },
+  "flood_models": {
+    "xgb": {
+      "model": "flood_xgb",
+      "accuracy": 93.75,
+      "precision": 100.0,
+      "recall": 93.75,
+      "f1_score": 96.77,
+      "confusion_matrix": {
+        "tn": 0,
+        "fp": 0,
+        "fn": 4,
+        "tp": 60
+      },
+      "roc_auc": 0.0,
+      "pr_auc": 100.0,
+      "log_loss": null,
+      "brier_score": 0.0694,
+      "specificity": 0.0,
+      "npv": 0.0
+    },
+    "lgb": {
+      "model": "flood_lgb",
+      "accuracy": 81.25,
+      "precision": 100.0,
+      "recall": 81.25,
+      "f1_score": 89.66,
+      "confusion_matrix": {
+        "tn": 0,
+        "fp": 0,
+        "fn": 12,
+        "tp": 52
+      },
+      "roc_auc": 0.0,
+      "pr_auc": 100.0,
+      "log_loss": null,
+      "brier_score": 0.1771,
+      "specificity": 0.0,
+      "npv": 0.0
+    },
+    "cat": {
+      "model": "flood_cat",
+      "accuracy": 92.19,
+      "precision": 100.0,
+      "recall": 92.19,
+      "f1_score": 95.93,
+      "confusion_matrix": {
+        "tn": 0,
+        "fp": 0,
+        "fn": 5,
+        "tp": 59
+      },
+      "roc_auc": 0.0,
+      "pr_auc": 100.0,
+      "log_loss": null,
+      "brier_score": 0.0761,
+      "specificity": 0.0,
+      "npv": 0.0
+    },
+    "ensemble": {
+      "model": "flood_ensemble",
+      "accuracy": 92.19,
+      "precision": 100.0,
+      "recall": 92.19,
+      "f1_score": 95.93,
+      "confusion_matrix": {
+        "tn": 0,
+        "fp": 0,
+        "fn": 5,
+        "tp": 59
+      },
+      "roc_auc": 0.0,
+      "pr_auc": 100.0,
+      "log_loss": null,
+      "brier_score": 0.0866,
+      "specificity": 0.0,
+      "npv": 0.0
+    }
+  },
+  "landslide_models": {
+    "rf": {
+      "model": "landslide_rf",
+      "accuracy": 95.31,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1_score": 0.0,
+      "confusion_matrix": {
+        "tn": 61,
+        "fp": 3,
+        "fn": 0,
+        "tp": 0
+      },
+      "roc_auc": 0.0,
+      "pr_auc": -0.0,
+      "log_loss": null,
+      "brier_score": 0.0514,
+      "specificity": 95.31,
+      "npv": 100.0
+    },
+    "xgb": {
+      "model": "landslide_xgb",
+      "accuracy": 96.88,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1_score": 0.0,
+      "confusion_matrix": {
+        "tn": 62,
+        "fp": 2,
+        "fn": 0,
+        "tp": 0
+      },
+      "roc_auc": 0.0,
+      "pr_auc": -0.0,
+      "log_loss": null,
+      "brier_score": 0.0222,
+      "specificity": 96.88,
+      "npv": 100.0
+    },
+    "lgb": {
+      "model": "landslide_lgb",
+      "accuracy": 93.75,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1_score": 0.0,
+      "confusion_matrix": {
+        "tn": 60,
+        "fp": 4,
+        "fn": 0,
+        "tp": 0
+      },
+      "roc_auc": 0.0,
+      "pr_auc": -0.0,
+      "log_loss": null,
+      "brier_score": 0.0528,
+      "specificity": 93.75,
+      "npv": 100.0
+    },
+    "ensemble": {
+      "model": "landslide_ensemble",
+      "accuracy": 96.88,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1_score": 0.0,
+      "confusion_matrix": {
+        "tn": 62,
+        "fp": 2,
+        "fn": 0,
+        "tp": 0
+      },
+      "roc_auc": 0.0,
+      "pr_auc": -0.0,
+      "log_loss": null,
+      "brier_score": 0.0304,
+      "specificity": 96.88,
+      "npv": 100.0
+    }
+  },
+  "flood_feature_importance": [
+    {
+      "feature": "flow_accumulation",
+      "importance": 156.0918,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "log_flow_acc",
+      "importance": 124.5699,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "latitude",
+      "importance": 95.5151,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "slope",
+      "importance": 55.0122,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "ndvi",
+      "importance": 50.0246,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "river_distance",
+      "importance": 41.5177,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "elevation",
+      "importance": 33.025,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "aspect",
+      "importance": 14.5047,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "rain_intensity_24_72",
+      "importance": 14.0012,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "vegetation_degradation_index",
+      "importance": 13.5494,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "longitude",
+      "importance": 13.009,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "rain_24h",
+      "importance": 12.5077,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "soil_moisture",
+      "importance": 10.548,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "mndwi",
+      "importance": 6.001,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "rainfall_accumulation",
+      "importance": 5.0069,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "ndwi",
+      "importance": 5.0059,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "river_proximity_factor",
+      "importance": 4.0017,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "drainage_density",
+      "importance": 4.0012,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "upstream_catchment_indicator",
+      "importance": 1.5025,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "terrain_instability_score",
+      "importance": 1.0015,
+      "model": "Ensemble (Trees)"
+    }
+  ],
+  "landslide_feature_importance": [
+    {
+      "feature": "slope",
+      "importance": 56.3835,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "ndvi",
+      "importance": 29.7954,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "elevation",
+      "importance": 26.0156,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "flow_accumulation",
+      "importance": 23.0212,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "latitude",
+      "importance": 22.0015,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "vegetation_degradation_index",
+      "importance": 20.1079,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "soil_moisture",
+      "importance": 16.6892,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "rain_24h",
+      "importance": 12.6973,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "terrain_instability_score",
+      "importance": 10.1029,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "rain_intensity_24_72",
+      "importance": 10.0004,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "slope_rainfall_interaction",
+      "importance": 8.6815,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "longitude",
+      "importance": 7.3416,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "rain_72h",
+      "importance": 7.0265,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "evi",
+      "importance": 4.0059,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "upstream_catchment_indicator",
+      "importance": 3.6711,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "humidity",
+      "importance": 3.0021,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "river_distance",
+      "importance": 1.6675,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "ndwi",
+      "importance": 1.6668,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "soil_saturation_index",
+      "importance": 1.3501,
+      "model": "Ensemble (Trees)"
+    },
+    {
+      "feature": "rainfall_accumulation",
+      "importance": 1.0121,
+      "model": "Ensemble (Trees)"
+    }
+  ],
+  "roc_data": {
+    "flood": [
+      {
+        "threshold": 0.0,
+        "fpr": 0.0,
+        "tpr": 1.0
+      },
+      {
+        "threshold": 0.02,
+        "fpr": 0.0,
+        "tpr": 0.9844
+      },
+      {
+        "threshold": 0.041,
+        "fpr": 0.0,
+        "tpr": 0.9375
+      },
+      {
+        "threshold": 0.061,
+        "fpr": 0.0,
+        "tpr": 0.9375
+      },
+      {
+        "threshold": 0.082,
+        "fpr": 0.0,
+        "tpr": 0.9375
+      },
+      {
+        "threshold": 0.102,
+        "fpr": 0.0,
+        "tpr": 0.9375
+      },
+      {
+        "threshold": 0.122,
+        "fpr": 0.0,
+        "tpr": 0.9375
+      },
+      {
+        "threshold": 0.143,
+        "fpr": 0.0,
+        "tpr": 0.9375
+      },
+      {
+        "threshold": 0.163,
+        "fpr": 0.0,
+        "tpr": 0.9375
+      },
+      {
+        "threshold": 0.184,
+        "fpr": 0.0,
+        "tpr": 0.9375
+      },
+      {
+        "threshold": 0.204,
+        "fpr": 0.0,
+        "tpr": 0.9375
+      },
+      {
+        "threshold": 0.224,
+        "fpr": 0.0,
+        "tpr": 0.9375
+      },
+      {
+        "threshold": 0.245,
+        "fpr": 0.0,
+        "tpr": 0.9375
+      },
+      {
+        "threshold": 0.265,
+        "fpr": 0.0,
+        "tpr": 0.9375
+      },
+      {
+        "threshold": 0.286,
+        "fpr": 0.0,
+        "tpr": 0.9375
+      },
+      {
+        "threshold": 0.306,
+        "fpr": 0.0,
+        "tpr": 0.9375
+      },
+      {
+        "threshold": 0.327,
+        "fpr": 0.0,
+        "tpr": 0.9375
+      },
+      {
+        "threshold": 0.347,
+        "fpr": 0.0,
+        "tpr": 0.9375
+      },
+      {
+        "threshold": 0.367,
+        "fpr": 0.0,
+        "tpr": 0.9375
+      },
+      {
+        "threshold": 0.388,
+        "fpr": 0.0,
+        "tpr": 0.9219
+      },
+      {
+        "threshold": 0.408,
+        "fpr": 0.0,
+        "tpr": 0.9219
+      },
+      {
+        "threshold": 0.429,
+        "fpr": 0.0,
+        "tpr": 0.9219
+      },
+      {
+        "threshold": 0.449,
+        "fpr": 0.0,
+        "tpr": 0.9219
+      },
+      {
+        "threshold": 0.469,
+        "fpr": 0.0,
+        "tpr": 0.9219
+      },
+      {
+        "threshold": 0.49,
+        "fpr": 0.0,
+        "tpr": 0.9219
+      },
+      {
+        "threshold": 0.51,
+        "fpr": 0.0,
+        "tpr": 0.9219
+      },
+      {
+        "threshold": 0.531,
+        "fpr": 0.0,
+        "tpr": 0.9219
+      },
+      {
+        "threshold": 0.551,
+        "fpr": 0.0,
+        "tpr": 0.9219
+      },
+      {
+        "threshold": 0.571,
+        "fpr": 0.0,
+        "tpr": 0.9219
+      },
+      {
+        "threshold": 0.592,
+        "fpr": 0.0,
+        "tpr": 0.875
+      },
+      {
+        "threshold": 0.612,
+        "fpr": 0.0,
+        "tpr": 0.8281
+      },
+      {
+        "threshold": 0.633,
+        "fpr": 0.0,
+        "tpr": 0.8125
+      },
+      {
+        "threshold": 0.653,
+        "fpr": 0.0,
+        "tpr": 0.8125
+      },
+      {
+        "threshold": 0.673,
+        "fpr": 0.0,
+        "tpr": 0.8125
+      },
+      {
+        "threshold": 0.694,
+        "fpr": 0.0,
+        "tpr": 0.8125
+      },
+      {
+        "threshold": 0.714,
+        "fpr": 0.0,
+        "tpr": 0.8125
+      },
+      {
+        "threshold": 0.735,
+        "fpr": 0.0,
+        "tpr": 0.8125
+      },
+      {
+        "threshold": 0.755,
+        "fpr": 0.0,
+        "tpr": 0.7969
+      },
+      {
+        "threshold": 0.776,
+        "fpr": 0.0,
+        "tpr": 0.7969
+      },
+      {
+        "threshold": 0.796,
+        "fpr": 0.0,
+        "tpr": 0.7812
+      },
+      {
+        "threshold": 0.816,
+        "fpr": 0.0,
+        "tpr": 0.7812
+      },
+      {
+        "threshold": 0.837,
+        "fpr": 0.0,
+        "tpr": 0.7812
+      },
+      {
+        "threshold": 0.857,
+        "fpr": 0.0,
+        "tpr": 0.7812
+      },
+      {
+        "threshold": 0.878,
+        "fpr": 0.0,
+        "tpr": 0.7656
+      },
+      {
+        "threshold": 0.898,
+        "fpr": 0.0,
+        "tpr": 0.7656
+      },
+      {
+        "threshold": 0.918,
+        "fpr": 0.0,
+        "tpr": 0.7188
+      },
+      {
+        "threshold": 0.939,
+        "fpr": 0.0,
+        "tpr": 0.6719
+      },
+      {
+        "threshold": 0.959,
+        "fpr": 0.0,
+        "tpr": 0.3594
+      },
+      {
+        "threshold": 0.98,
+        "fpr": 0.0,
+        "tpr": 0.3438
+      },
+      {
+        "threshold": 1.0,
+        "fpr": 0.0,
+        "tpr": 0.0
+      }
+    ],
+    "landslide": [
+      {
+        "threshold": 0.0,
+        "fpr": 1.0,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.02,
+        "fpr": 0.7969,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.041,
+        "fpr": 0.5,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.061,
+        "fpr": 0.4219,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.082,
+        "fpr": 0.3594,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.102,
+        "fpr": 0.25,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.122,
+        "fpr": 0.1875,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.143,
+        "fpr": 0.125,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.163,
+        "fpr": 0.1094,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.184,
+        "fpr": 0.0938,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.204,
+        "fpr": 0.0938,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.224,
+        "fpr": 0.0938,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.245,
+        "fpr": 0.0938,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.265,
+        "fpr": 0.0938,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.286,
+        "fpr": 0.0938,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.306,
+        "fpr": 0.0938,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.327,
+        "fpr": 0.0938,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.347,
+        "fpr": 0.0781,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.367,
+        "fpr": 0.0781,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.388,
+        "fpr": 0.0781,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.408,
+        "fpr": 0.0781,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.429,
+        "fpr": 0.0781,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.449,
+        "fpr": 0.0781,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.469,
+        "fpr": 0.0469,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.49,
+        "fpr": 0.0312,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.51,
+        "fpr": 0.0156,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.531,
+        "fpr": 0.0156,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.551,
+        "fpr": 0.0156,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.571,
+        "fpr": 0.0156,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.592,
+        "fpr": 0.0156,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.612,
+        "fpr": 0.0156,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.633,
+        "fpr": 0.0156,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.653,
+        "fpr": 0.0156,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.673,
+        "fpr": 0.0156,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.694,
+        "fpr": 0.0156,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.714,
+        "fpr": 0.0156,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.735,
+        "fpr": 0.0156,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.755,
+        "fpr": 0.0156,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.776,
+        "fpr": 0.0156,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.796,
+        "fpr": 0.0156,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.816,
+        "fpr": 0.0,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.837,
+        "fpr": 0.0,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.857,
+        "fpr": 0.0,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.878,
+        "fpr": 0.0,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.898,
+        "fpr": 0.0,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.918,
+        "fpr": 0.0,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.939,
+        "fpr": 0.0,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.959,
+        "fpr": 0.0,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 0.98,
+        "fpr": 0.0,
+        "tpr": 0.0
+      },
+      {
+        "threshold": 1.0,
+        "fpr": 0.0,
+        "tpr": 0.0
+      }
+    ]
+  },
+  "training_time_seconds": 42.6
+}

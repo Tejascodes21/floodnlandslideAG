@@ -1,0 +1,183 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design Tokens & Theme Management */
+:root {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --font-title: 'Outfit', var(--font-sans);
+  
+  /* Dark EOC Emitter Scheme (Default) */
+  --bg-main: #050811;
+  --bg-card: rgba(10, 15, 30, 0.65);
+  --bg-card-glow: rgba(13, 20, 38, 0.8);
+  --bg-accent: #0f172a;
+  --border-dim: rgba(255, 255, 255, 0.05);
+  --border-glow: rgba(59, 130, 246, 0.25);
+  --text-main: #e2e8f0;
+  --text-muted: #94a3b8;
+  --glow-color: rgba(59, 130, 246, 0.4);
+  --shadow-base: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+  
+  /* Alert status tokens */
+  --color-low: 16, 185, 129;
+  --color-mod: 245, 158, 11;
+  --color-high: 249, 115, 22;
+  --color-extreme: 239, 68, 68;
+}
+
+[data-theme="light"] {
+  /* Light Emergency Deck Scheme */
+  --bg-main: #f8fafc;
+  --bg-card: rgba(255, 255, 255, 0.75);
+  --bg-card-glow: rgba(241, 245, 249, 0.85);
+  --bg-accent: #e2e8f0;
+  --border-dim: rgba(0, 0, 0, 0.08);
+  --border-glow: rgba(59, 130, 246, 0.35);
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --glow-color: rgba(59, 130, 246, 0.2);
+  --shadow-base: 0 8px 32px 0 rgba(148, 163, 184, 0.15);
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-title);
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-main);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-accent);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(59, 130, 246);
+}
+
+/* Premium Glassmorphic Panels */
+.glass-panel {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-dim);
+  box-shadow: var(--shadow-base);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel-glow {
+  background: var(--bg-card-glow);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border-glow);
+  box-shadow: var(--shadow-base), 0 0 20px rgba(59, 130, 246, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* EOC Custom Micro-interactions */
+.glow-button {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.glow-button:hover {
+  box-shadow: 0 0 22px var(--glow-color);
+  transform: translateY(-1.5px);
+}
+
+.glow-button-sos {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.25);
+}
+.glow-button-sos:hover {
+  box-shadow: 0 0 25px rgba(239, 68, 68, 0.7);
+  transform: scale(1.02);
+}
+
+/* Keyframes for animations */
+@keyframes threat-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--color-extreme), 0.75);
+  }
+  70% {
+    box-shadow: 0 0 0 15px rgba(var(--color-extreme), 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--color-extreme), 0);
+  }
+}
+
+.pulse-threat {
+  animation: threat-pulse 2s infinite;
+}
+
+@keyframes scanner-sweep {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+.satellite-scanner {
+  animation: scanner-sweep 3.5s linear infinite;
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0) 0%, rgba(59, 130, 246, 0.28) 50%, rgba(59, 130, 246, 0) 100%);
+}
+
+/* Custom styled Leaflet dark matter map overlay classes */
+.leaflet-container {
+  background: #070a13 !important;
+  border-radius: 12px;
+}
+.leaflet-tile {
+  filter: brightness(0.65) contrast(1.15) invert(1) hue-rotate(185deg) saturate(0.65) !important;
+}
+
+/* Optional light map tiles styles */
+[data-theme="light"] .leaflet-tile {
+  filter: none !important;
+}
+
+.leaflet-bar a {
+  background-color: var(--bg-card) !important;
+  color: var(--text-main) !important;
+  border: 1px solid var(--border-dim) !important;
+  backdrop-filter: blur(8px);
+}
+.leaflet-bar a:hover {
+  background-color: rgb(59, 130, 246) !important;
+  color: #fff !important;
+}
+.leaflet-popup-content-wrapper {
+  background: var(--bg-card) !important;
+  color: var(--text-main) !important;
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-glow) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--shadow-base) !important;
+}
+.leaflet-popup-tip {
+  background: var(--bg-card) !important;
+}
+
+/* Widget Configuration Drag Styles */
+.widget-drag-handle {
+  cursor: grab;
+}
+.widget-drag-handle:active {
+  cursor: grabbing;
+}

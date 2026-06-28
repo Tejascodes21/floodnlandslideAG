@@ -1,0 +1,157 @@
+================================================================================
+                    GEOSHIELD AI: PROJECT INFORMATION DOCUMENT
+================================================================================
+Project Name: GeoShield AI
+Description: Full-Stack Geospatial Disaster Intelligence & Risk Assessment Platform
+Version: 1.0.0
+Author/Workspace: tejasnikam (OneDrive/Desktop/floodnlandslideAG)
+Date Generated: 2026-06-27
+================================================================================
+
+1. TECH STACK SUMMARY
+--------------------------------------------------------------------------------
+The project is built on a modern decoupled architecture using TypeScript/React for 
+the frontend interface and Python/FastAPI for the backend REST and WebSocket APIs, 
+supplemented by an advanced scientific machine learning (ML/DL) pipeline.
+
+  FRONTEND:
+  - Build Tool / Bundle: Vite
+  - Language: TypeScript (TSX)
+  - UI Library: React (v18.2.0)
+  - Styling: Vanilla CSS, Tailwind CSS (v3.4.1), PostCSS, Autoprefixer
+  - Map Visualization: Leaflet (v1.9.4) & React-Leaflet (v4.2.1)
+  - Charts & Analytics: Recharts (v2.12.2)
+  - Motion / Animations: Framer Motion (v11.0.8)
+  - Icons: Lucide React (v0.344.0)
+  - Data Fetching: TanStack React Query (v5.101.0)
+  
+  BACKEND:
+  - Framework: FastAPI (v0.110.0)
+  - Web Server: Uvicorn (v0.28.0) with standard extra libraries (websockets support)
+  - Database: SQLAlchemy ORM (v2.0.28) using SQLite (geoshield.db)
+  - Authentication: JSON Web Tokens (JWT) using python-jose (v3.3.0) and passlib (v1.7.4)
+  - HTTP Utility: Python-Multipart (v0.0.9)
+  
+  DATA SCIENCE, MACHINE LEARNING & DEEP LEARNING:
+  - Deep Learning Framework: PyTorch (torch)
+  - Tabular ML Classifiers: XGBoost (v2.0.3) & Scikit-learn (v1.4.1.post1)
+  - Data Wrangling: Pandas (v2.2.1) & NumPy (v1.26.4)
+  - Model Serialization: Joblib (v1.3.2)
+  - Model Explainability: SHAP (shap-explainer v10.27)
+  - Remote Sensing API: Google Earth Engine (earthengine-api v1.7.32)
+
+================----------------------------------------------------------------
+
+2. ARCHITECTURAL LAYERS & FLOW
+--------------------------------------------------------------------------------
+GeoShield AI operates as a multi-tiered geospatially aware application:
+
+               +-------------------------------------------+
+               |            React UI Client                |
+               | (Dashboard, Live Map, Interactive Charts) |
+               +-----+-------------------+-----------------+
+                     | HTTP REST         | WebSockets
+                     | Requests          | (Real-time stream)
+                     v                   v
+               +-----+-------------------+-----------------+
+               |           FastAPI Gateway                 |
+               |       (Auth, Endpoints, GIS Tiles)        |
+               +-----+-------------------+-----------------+
+                     |                   |
+                     v                   v
+        +------------+-----------+   +---+-------------------------+
+        |  ML / Inference Suite  |   |    GIS & Earth Engine       |
+        | (XGBoost, RF, PyTorch) |   | (Satellite extraction/mock) |
+        +------------------------+   +-----------------------------+
+                     |                           |
+                     v                           v
+        +------------+-----------+   +-----------+-----------------+
+        |   SQLite Database      |   |   Fidelity Simulators       |
+        |  (Users, Incidents)    |   | (Fallback mapping/sensors)  |
+        +------------------------+   +-----------------------------+
+
+  - FRONTEND ROUTING & STATE: App routes are dynamically rendered. React Query handles
+    asynchronous caching of backend predictions, keeping UI latency low.
+  - REAL-TIME ALERTS: A persistent WebSocket connections manager (/api/realtime/ws) 
+    broadcasts sensor telemetry updates and critical disaster incidents.
+  - FALLBACK SIMULATIONS: When third-party integrations (like Google Earth Engine) 
+    lack local environment credentials, the API switches to "Fidelity Simulation Mode" 
+    generating mathematical mock GIS satellite tiles (rgb, dem, ndvi, ndwi) dynamically
+    via NumPy grid arrays to keep the map system operational.
+
+================----------------------------------------------------------------
+
+3. SYNTHETIC GEOSPATIAL DATASET DETAILS
+--------------------------------------------------------------------------------
+The project features a highly advanced synthetic dataset generator designed to simulate
+physically realistic geographical profiles modeling the Indian Subcontinent:
+  - Geographic boundaries: Latitudes (8.0°N to 35.0°N), Longitudes (68.0°E to 97.0°E)
+  - Size: 10,000 geospatial sample coordinates generated per execution run.
+  
+  PHYSICAL ATTRIBUTES GENERATED:
+  - Terrain Features:
+    * Elevation: Exponential distributions modeling valleys and mountains (1m to 5000m)
+    * Slope: Gradient based on elevation scaling (0.1° to 60°)
+    * Roughness: Surface variation, higher in steep areas
+    * Curvature: Concave vs convex soil configurations
+    * Topographic Wetness Index (TWI): Runoff retention capacity, inversely related to slope
+  - Spectral Indices:
+    * NDVI (Normalized Difference Vegetation Index): Sparse vs deep vegetation
+    * NDWI (Normalized Difference Water Index): Moisture presence & water bodies
+    * EVI (Enhanced Vegetation Index): High-sensitivity green cover index
+    * MNDWI: Modified NDWI for urban/water discrimination
+  - Hydrological & Precipitation Drivers:
+    * Monsoon influence based on geographical coordinate criteria
+    * Multi-duration rainfall: 24h, 48h, 72h, and 7-day cumulative precipitation
+    * Standardized Precipitation Index (SPI): Rainfall anomaly measurements
+  
+  PHYSICS-BASED HAZARD LABELS:
+  - Flood Occurrence (Binary): Positive condition generated under high precipitation + 
+    low elevation + high water index (NDWI) + proximity to catchment areas.
+  - Landslide Occurrence (Binary): Positive condition generated under steep terrain (slope) 
+    + high soil moisture (saturation) + heavy precipitation + weak vegetation (low NDVI).
+
+================----------------------------------------------------------------
+
+4. ENSEMBLE MODEL DESIGNS
+--------------------------------------------------------------------------------
+To guarantee high predictive performance, GeoShield uses soft-voting ensembles 
+rather than relying on single classifiers.
+
+  A. FLOOD PREDICTION ENSEMBLE:
+     Calculates final risk probability by blending the outputs of:
+     1. Random Forest (RF) (Weight: 25%) - Captures tabular feature bounds.
+     2. XGBoost (xgb) (Weight: 35%) - Handles gradient boosted decision boundaries.
+     3. LSTM Neural Network (Weight: 15%) - Evaluates temporal rainfall sequences.
+     4. CNN-LSTM (Weight: 25%) - Extracts spatial and temporal trends in combination.
+     
+  B. LANDSLIDE PREDICTION ENSEMBLE:
+     Combines structural models to predict risk probability:
+     1. Convolutional Neural Network (CNN) (Weight: 20%) - Processes terrain textures.
+     2. Random Forest (RF) (Weight: 25%) - Evaluates tabular soil parameters.
+     3. XGBoost (xgb) (Weight: 35%) - Evaluates gradient boosted soil slopes.
+     4. LSTM Neural Network (Weight: 20%) - Analyzes cumulative rainfall saturation.
+
+  C. EXPLAINABILITY:
+     - Includes integrated SHAP (SHapley Additive exPlanations) values to output 
+       risk factor contributions, so the user knows *why* a certain coordinate is high-risk.
+
+================----------------------------------------------------------------
+
+5. PROJECT FOLDERS & STRUCTURE
+--------------------------------------------------------------------------------
+- /backend
+  |- /app
+  |  |- /api         # FastAPI routers (auth, endpoints, predictions, realtime, gis)
+  |  |- /core        # App configuration, security settings, JWT auth handler
+  |  |- /db          # SQLite session initialization and SQLAlchemy ORM models
+  |  |- /services    # Evacuation pathfinding algorithms, GEE integration modules
+  |- /ml             # ML/DL training pipeline, dataset generator, inference engine
+  |- requirements.txt# Backend requirements
+- /frontend
+  |- /src
+  |  |- /components  # 26 React components (Map overlays, dashboards, volunteer tracking)
+  |  |- /assets      # Styles, fonts, icons
+  |- package.json    # Frontend requirements
+- Makefile           # High-level training execution shortcuts
+================================================================================
