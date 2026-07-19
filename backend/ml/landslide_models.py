@@ -186,10 +186,17 @@ class LandslideModelSuite:
         
         for name in ["rf", "xgb", "lgb"]:
             if name in self.models:
-                imp = self.models[name].feature_importances_
-                for i, f_name in enumerate(feature_names[:len(imp)]):
-                    importances[f_name] = importances.get(f_name, 0.0) + imp[i]
-                n_trees += 1
+                m = self.models[name]
+                if hasattr(m, "estimator"):
+                    base_est = getattr(m.estimator, "estimator", m.estimator)
+                else:
+                    base_est = m
+                
+                if hasattr(base_est, "feature_importances_"):
+                    imp = base_est.feature_importances_
+                    for i, f_name in enumerate(feature_names[:len(imp)]):
+                        importances[f_name] = importances.get(f_name, 0.0) + imp[i]
+                    n_trees += 1
                 
         result = []
         for f_name, score in importances.items():

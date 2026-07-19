@@ -13,8 +13,16 @@ from typing import Dict, List, Tuple
 from sklearn.metrics import f1_score
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
-from catboost import CatBoostClassifier
 import optuna
+
+try:
+    from catboost import CatBoostClassifier
+    CATBOOST_AVAILABLE = True
+except ImportError:
+    CATBOOST_AVAILABLE = False
+    class CatBoostClassifier:
+        def __init__(self, *args, **kwargs):
+            raise NotImplementedError("CatBoost is not installed on this system.")
 
 # Disable optuna verbosity for cleaner stdout
 optuna.logging.set_verbosity(optuna.logging.WARNING)
@@ -31,8 +39,11 @@ class FloodModelSuite:
     
     def __init__(self):
         self.models = {}
-        # Blending weights matching central config
-        self.weights = {"xgb": 0.35, "lgb": 0.35, "cat": 0.30}
+        # Blending weights matching central config, dynamically adjusted if CatBoost is unavailable
+        if CATBOOST_AVAILABLE:
+            self.weights = {"xgb": 0.35, "lgb": 0.35, "cat": 0.30}
+        else:
+            self.weights = {"xgb": 0.50, "lgb": 0.50, "cat": 0.00}
         
     def optimize_and_train_xgb(self, X_train: np.ndarray, y_train: np.ndarray,
                                X_val: np.ndarray, y_val: np.ndarray) -> XGBClassifier:
@@ -109,6 +120,8 @@ class FloodModelSuite:
 
     def optimize_and_train_cat(self, X_train: np.ndarray, y_train: np.ndarray,
                                X_val: np.ndarray, y_val: np.ndarray) -> CatBoostClassifier:
+        if not CATBOOST_AVAILABLE:
+            return None
         logger.info("Optimizing Flood CatBoost hyperparameters via Optuna...")
         
         def objective(trial):
@@ -142,7 +155,8 @@ class FloodModelSuite:
         """Train all models in the suite."""
         self.optimize_and_train_xgb(X_train, y_train, X_val, y_val)
         self.optimize_and_train_lgb(X_train, y_train, X_val, y_val)
-        self.optimize_and_train_cat(X_train, y_train, X_val, y_val)
+        if CATBOOST_AVAILABLE:
+            self.optimize_and_train_cat(X_train, y_train, X_val, y_val)
         logger.info("Flood model suite training successfully completed.")
         
     def ensemble_predict_proba(self, X: np.ndarray) -> np.ndarray:
@@ -172,7 +186,10 @@ class FloodModelSuite:
             logger.info(f"Saved {name} wrapper model → {pkl_path}")
             
     def load_models(self, prefix: str = "flood_v2"):
-        for name in ["xgb", "lgb", "cat"]:
+        model_keys = ["xgb", "lgb"]
+        if CATBOOST_AVAILABLE:
+            model_keys.append("cat")
+        for name in model_keys:
             pkl_path = MODEL_DIR / f"{prefix}_{name}.pkl"
             if pkl_path.exists():
                 self.models[name] = joblib.load(pkl_path)
@@ -185,10 +202,18 @@ class FloodModelSuite:
         
         for name in ["xgb", "lgb"]:
             if name in self.models:
-                imp = self.models[name].feature_importances_
-                for i, f_name in enumerate(feature_names[:len(imp)]):
-                    importances[f_name] = importances.get(f_name, 0.0) + imp[i]
-                n_trees += 1
+                m = self.models[name]
+                # If wrapped in CalibratedClassifierCV, get the base estimator
+                if hasattr(m, "estimator"):
+                    base_est = getattr(m.estimator, "estimator", m.estimator)
+                else:
+                    base_est = m
+                
+                if hasattr(base_est, "feature_importances_"):
+                    imp = base_est.feature_importances_
+                    for i, f_name in enumerate(feature_names[:len(imp)]):
+                        importances[f_name] = importances.get(f_name, 0.0) + imp[i]
+                    n_trees += 1
                 
         result = []
         for f_name, score in importances.items():
