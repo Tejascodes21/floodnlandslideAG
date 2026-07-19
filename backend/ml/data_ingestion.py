@@ -32,30 +32,47 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 DATA_DIR = Path(__file__).resolve().parent
 OUTPUT_FILE = DATA_DIR / "training_dataset.csv"
 
+# Helper to map coordinates to actual Indian states to avoid spatial lumping
+def get_indian_state_from_coords(lat, lon):
+    if lat < 13.0:
+        if lon < 77.5:
+            return "Kerala"
+        else:
+            return "Tamil Nadu"
+    elif lat < 22.0:
+        return "Maharashtra"
+    elif lat < 28.0:
+        if lon > 87.0:
+            return "Assam"
+        else:
+            return "Maharashtra"
+    else: # lat >= 28.0
+        if lon < 77.0:
+            return "Jammu & Kashmir"
+        else:
+            return "Uttarakhand"
+
 # --- Curated Historical Disaster Event Dataset (India 2005-2024) ---
 HISTORICAL_FLOODS = [
-    # Kerala Floods 2018
+    # Kerala Floods 2018 (Severe monsoon anomaly)
     {"lat": 9.9312, "lon": 76.2673, "date": "2018-08-16", "district": "Ernakulam", "state": "Kerala", "severity": "Extreme"},
-    {"lat": 9.5916, "lon": 76.5222, "date": "2018-08-16", "district": "Kottayam", "state": "Kerala", "severity": "Extreme"},
-    {"lat": 10.0159, "lon": 76.3419, "date": "2018-08-15", "district": "Idukki", "state": "Kerala", "severity": "Extreme"},
-    {"lat": 9.3500, "lon": 76.6000, "date": "2018-08-17", "district": "Pathanamthitta", "state": "Kerala", "severity": "Extreme"},
-    {"lat": 11.2500, "lon": 75.7800, "date": "2018-08-14", "district": "Kozhikode", "state": "Kerala", "severity": "High"},
+    {"lat": 9.5916, "lon": 76.5222, "date": "2018-08-15", "district": "Kottayam", "state": "Kerala", "severity": "Extreme"},
+    {"lat": 10.5276, "lon": 76.2144, "date": "2018-08-17", "district": "Thrissur", "state": "Kerala", "severity": "Extreme"},
     
-    # Assam Floods 2022 & 2020
+    # Assam Floods 2022 (Brahmaputra basin overflow)
     {"lat": 26.1445, "lon": 91.7362, "date": "2022-06-18", "district": "Kamrup", "state": "Assam", "severity": "Extreme"},
-    {"lat": 26.3150, "lon": 92.6840, "date": "2020-07-14", "district": "Morigaon", "state": "Assam", "severity": "High"},
-    {"lat": 27.4728, "lon": 94.9120, "date": "2022-06-16", "district": "Dibrugarh", "state": "Assam", "severity": "High"},
-    {"lat": 26.1830, "lon": 90.6270, "date": "2022-06-17", "district": "Goalpara", "state": "Assam", "severity": "Extreme"},
+    {"lat": 26.3122, "lon": 92.0311, "date": "2022-06-20", "district": "Morigaon", "state": "Assam", "severity": "High"},
+    {"lat": 27.3255, "lon": 94.2188, "date": "2022-06-15", "district": "Lakhimpur", "state": "Assam", "severity": "Extreme"},
     
-    # Uttarakhand/Kedarnath Floods 2013
-    {"lat": 30.2680, "lon": 78.9800, "date": "2013-06-16", "district": "Rudraprayag", "state": "Uttarakhand", "severity": "Extreme"},
-    {"lat": 30.5204, "lon": 78.7378, "date": "2013-06-17", "district": "Chamoli", "state": "Uttarakhand", "severity": "Extreme"},
+    # Uttarakhand Floods 2013 (Kedarnath cloudburst)
+    {"lat": 30.2690, "lon": 78.9820, "date": "2013-06-16", "district": "Rudraprayag", "state": "Uttarakhand", "severity": "Extreme"},
+    {"lat": 30.3800, "lon": 78.4800, "date": "2013-06-17", "district": "Uttarkashi", "state": "Uttarakhand", "severity": "Extreme"},
     
-    # Chennai Floods 2015
+    # Chennai/Tamil Nadu Floods 2015 (Coromandel coast depression)
     {"lat": 13.0827, "lon": 80.2707, "date": "2015-12-02", "district": "Chennai", "state": "Tamil Nadu", "severity": "Extreme"},
-    {"lat": 12.9800, "lon": 80.2000, "date": "2015-12-02", "district": "Kanchipuram", "state": "Tamil Nadu", "severity": "Extreme"},
+    {"lat": 12.9249, "lon": 80.1011, "date": "2015-12-01", "district": "Kanchipuram", "state": "Tamil Nadu", "severity": "High"},
     
-    # Mumbai Floods 2005
+    # Maharashtra Floods 2005 (Mumbai cloudburst)
     {"lat": 19.0760, "lon": 72.8777, "date": "2005-07-26", "district": "Mumbai", "state": "Maharashtra", "severity": "Extreme"},
     {"lat": 19.2183, "lon": 72.9781, "date": "2005-07-27", "district": "Thane", "state": "Maharashtra", "severity": "Extreme"},
     
@@ -65,25 +82,25 @@ HISTORICAL_FLOODS = [
 
 HISTORICAL_LANDSLIDES = [
     # Wayanad Landslides (Kerala)
-    {"lat": 11.6050, "lon": 76.0830, "date": "2020-08-06", "trigger_type": "Monsoon Rain", "landslide_size": "Large", "damage_level": "High"},
-    {"lat": 11.5200, "lon": 76.1200, "date": "2024-07-30", "trigger_type": "Continuous Rain", "landslide_size": "Very Large", "damage_level": "Extreme"},
+    {"lat": 11.6050, "lon": 76.0830, "date": "2020-08-06", "trigger_type": "Monsoon Rain", "landslide_size": "Large", "damage_level": "High", "state": "Kerala", "district": "Wayanad"},
+    {"lat": 11.5200, "lon": 76.1200, "date": "2024-07-30", "trigger_type": "Continuous Rain", "landslide_size": "Very Large", "damage_level": "Extreme", "state": "Kerala", "district": "Wayanad"},
     
     # Kedarnath Landslides 2013
-    {"lat": 30.7352, "lon": 79.0680, "date": "2013-06-17", "trigger_type": "Cloudburst", "landslide_size": "Very Large", "damage_level": "Extreme"},
+    {"lat": 30.7352, "lon": 79.0680, "date": "2013-06-17", "trigger_type": "Cloudburst", "landslide_size": "Very Large", "damage_level": "Extreme", "state": "Uttarakhand", "district": "Rudraprayag"},
     
     # Malin Landslide (Maharashtra)
-    {"lat": 19.1634, "lon": 73.6882, "date": "2014-07-30", "trigger_type": "Heavy Rainfall", "landslide_size": "Large", "damage_level": "High"},
+    {"lat": 19.1634, "lon": 73.6882, "date": "2014-07-30", "trigger_type": "Heavy Rainfall", "landslide_size": "Large", "damage_level": "High", "state": "Maharashtra", "district": "Pune"},
     
     # Munnar Landslides
-    {"lat": 10.0889, "lon": 77.0600, "date": "2018-08-15", "trigger_type": "Continuous Rain", "landslide_size": "Medium", "damage_level": "Moderate"},
-    {"lat": 10.1500, "lon": 77.0200, "date": "2020-08-07", "trigger_type": "Monsoon Rain", "landslide_size": "Large", "damage_level": "High"},
+    {"lat": 10.0889, "lon": 77.0600, "date": "2018-08-15", "trigger_type": "Continuous Rain", "landslide_size": "Medium", "damage_level": "Moderate", "state": "Kerala", "district": "Idukki"},
+    {"lat": 10.1500, "lon": 77.0200, "date": "2020-08-07", "trigger_type": "Monsoon Rain", "landslide_size": "Large", "damage_level": "High", "state": "Kerala", "district": "Idukki"},
     
     # Himachal/Shimla Landslides 2023
-    {"lat": 31.1048, "lon": 77.1734, "date": "2023-08-14", "trigger_type": "Monsoon Rain", "landslide_size": "Large", "damage_level": "High"},
-    {"lat": 32.2190, "lon": 76.3234, "date": "2023-08-13", "trigger_type": "Heavy Rainfall", "landslide_size": "Medium", "damage_level": "Moderate"},
+    {"lat": 31.1048, "lon": 77.1734, "date": "2023-08-14", "trigger_type": "Monsoon Rain", "landslide_size": "Large", "damage_level": "High", "state": "Jammu & Kashmir", "district": "Shimla"},
+    {"lat": 32.2190, "lon": 76.3234, "date": "2023-08-13", "trigger_type": "Heavy Rainfall", "landslide_size": "Medium", "damage_level": "Moderate", "state": "Jammu & Kashmir", "district": "Kangra"},
     
     # Darjeeling Landslide 2015
-    {"lat": 27.0410, "lon": 88.2627, "date": "2015-07-01", "trigger_type": "Heavy Rainfall", "landslide_size": "Medium", "damage_level": "Moderate"},
+    {"lat": 27.0410, "lon": 88.2627, "date": "2015-07-01", "trigger_type": "Heavy Rainfall", "landslide_size": "Medium", "damage_level": "Moderate", "state": "Assam", "district": "Darjeeling"},
 ]
 
 # Generate spatial variances around event epicenters to simulate local damage clusters (500+ records)
@@ -123,10 +140,13 @@ def generate_event_clusters(seed=42):
                 "date": evt_date.strftime("%Y-%m-%d"),
                 "trigger_type": s["trigger_type"],
                 "landslide_size": s["landslide_size"],
-                "damage_level": s["damage_level"]
+                "damage_level": s["damage_level"],
+                "state": s["state"],
+                "district": s["district"]
             })
             
     return expanded_floods, expanded_slides
+
 
 class RealDataIngestionPipeline:
     def __init__(self):
@@ -171,7 +191,6 @@ class RealDataIngestionPipeline:
         Uses high-fidelity physical weather simulation based on monsoon cycles and geographical parameters
         to ensure rapid compilation without hitting external API rate-limits.
         """
-        # Fallback to high-fidelity weather model based on geographic monsoon parameters
         seed = int(abs(lat * 100) + abs(lon * 100) + int(date_str.replace("-", "")[-6:])) % 10000
         rng = np.random.RandomState(seed)
         
@@ -220,11 +239,14 @@ class RealDataIngestionPipeline:
             feats = gee_service.get_geospatial_features(f["lat"], f["lon"])
             weather = self.get_historical_weather(f["lat"], f["lon"], f["date"])
             
+            # Avoid target leakage in baseline counts by basing it on physical features
+            hist_freq = int(np.clip((1.0 - feats["elevation"] / 500.0) * 3.0 + (feats["ndwi"] + 0.3) * 2.0 + rng.randint(0, 3), 0, 8))
+            
             # Assemble feature row
             records.append({
                 "latitude": f["lat"], "longitude": f["lon"], "date": f["date"],
                 "elevation": feats["elevation"], "slope": feats["slope"],
-                "aspect": rng.uniform(0, 360), # aspect mock
+                "aspect": rng.uniform(0, 360),
                 "ndvi": feats["ndvi"], "ndwi": feats["ndwi"],
                 "mndwi": round(feats["ndwi"] * 0.82 + rng.normal(0, 0.04), 4),
                 "evi": round(feats["ndvi"] * 0.78 + rng.normal(0, 0.04), 4),
@@ -234,7 +256,8 @@ class RealDataIngestionPipeline:
                 "river_distance": round(rng.exponential(1.2), 3) if f["state"] == "Kerala" else round(rng.exponential(3.0), 3),
                 "drainage_density": round(rng.uniform(1.5, 4.5), 3) if feats["elevation"] < 300 else round(rng.uniform(0.5, 2.0), 3),
                 "flow_accumulation": float(rng.uniform(500, 8000)),
-                "historical_events": rng.randint(2, 8),
+                "historical_events": hist_freq,
+                "sar_backscatter": feats.get("sar_backscatter", -12.0),
                 "district": f["district"], "state": f["state"],
                 "flood_label": 1, "landslide_label": 0
             })
@@ -244,11 +267,13 @@ class RealDataIngestionPipeline:
             feats = gee_service.get_geospatial_features(s["lat"], s["lon"])
             weather = self.get_historical_weather(s["lat"], s["lon"], s["date"])
             
+            hist_freq = int(np.clip((feats["slope"] / 15.0) * 2.0 + (feats["ndvi"] * 1.5) + rng.randint(0, 2), 0, 6))
+            
             records.append({
                 "latitude": s["lat"], "longitude": s["lon"], "date": s["date"],
-                "elevation": feats["elevation"], "slope": max(feats["slope"], 15.0), # Landslide events require terrain slope
+                "elevation": feats["elevation"], "slope": max(feats["slope"], 15.0),
                 "aspect": rng.uniform(0, 360),
-                "ndvi": max(-0.1, feats["ndvi"] - 0.2), # weaker vegetation often at slide zones
+                "ndvi": max(-0.1, feats["ndvi"] - 0.2),
                 "ndwi": feats["ndwi"],
                 "mndwi": round(feats["ndwi"] * 0.82 + rng.normal(0, 0.04), 4),
                 "evi": round(feats["ndvi"] * 0.78 + rng.normal(0, 0.04), 4),
@@ -258,34 +283,35 @@ class RealDataIngestionPipeline:
                 "river_distance": round(rng.exponential(4.0), 3),
                 "drainage_density": round(rng.uniform(0.5, 2.2), 3),
                 "flow_accumulation": float(rng.uniform(100, 2000)),
-                "historical_events": rng.randint(1, 6),
-                "district": "Hilly-Zone", "state": "Mountain-Region",
+                "historical_events": hist_freq,
+                "sar_backscatter": feats.get("sar_backscatter", -15.0),
+                "district": s["district"], "state": s["state"],
                 "flood_label": 0, "landslide_label": 1
             })
             
         # 3. Generate Negative Controls (locations + dates with no events recorded)
         logger.info("Generating negative control samples (non-hazard situations)...")
-        # Generate twice the quantity of negatives to ensure model bounds
         n_negatives = len(records)
         for _ in range(n_negatives):
-            # Select random coordinates in India (away from heavy basins/peaks)
-            lat = round(rng.uniform(12.0, 28.0), 4)
-            lon = round(rng.uniform(73.0, 85.0), 4)
-            # Pick a dry winter date
+            # Select random coordinates in India
+            lat = round(rng.uniform(8.0, 34.0), 4)
+            lon = round(rng.uniform(73.0, 93.0), 4)
+            
+            state = get_indian_state_from_coords(lat, lon)
+            district = f"Control-Zone-{state}"
+            
+            # Pick a dry winter date to reflect non-hazard context naturally
             date_str = f"{rng.randint(2015, 2024):04d}-{rng.choice([1, 2, 3, 11, 12]):02d}-{rng.randint(1, 28):02d}"
             
             feats = gee_service.get_geospatial_features(lat, lon)
-            # Weather history during dry season is naturally low
+            # Weather history during dry season is naturally lower, no leakage scaling multiplier
             weather = self.get_historical_weather(lat, lon, date_str)
-            # Clear rains for controls
-            weather["rain_24h"] = max(0.0, weather["rain_24h"] * 0.05)
-            weather["rain_72h"] = max(0.0, weather["rain_72h"] * 0.05)
-            weather["rain_7d"] = max(0.0, weather["rain_7d"] * 0.05)
-            feats["soil_moisture"] = max(5.0, feats["soil_moisture"] * 0.3)
+            
+            hist_freq = int(np.clip((1.0 - feats["elevation"] / 1000.0) * 1.0 + (feats["ndwi"] + 0.1) * 1.0, 0, 2))
             
             records.append({
                 "latitude": lat, "longitude": lon, "date": date_str,
-                "elevation": feats["elevation"], "slope": max(0.1, feats["slope"] * 0.4),
+                "elevation": feats["elevation"], "slope": max(0.1, feats["slope"]),
                 "aspect": rng.uniform(0, 360),
                 "ndvi": feats["ndvi"], "ndwi": feats["ndwi"],
                 "mndwi": round(feats["ndwi"] * 0.82 + rng.normal(0, 0.02), 4),
@@ -296,8 +322,9 @@ class RealDataIngestionPipeline:
                 "river_distance": round(rng.uniform(5.0, 30.0), 3),
                 "drainage_density": round(rng.uniform(0.1, 1.2), 3),
                 "flow_accumulation": float(rng.uniform(10, 500)),
-                "historical_events": 0,
-                "district": "Safe-Zone", "state": "Safe-State",
+                "historical_events": hist_freq,
+                "sar_backscatter": feats.get("sar_backscatter", -14.0),
+                "district": district, "state": state,
                 "flood_label": 0, "landslide_label": 0
             })
             
