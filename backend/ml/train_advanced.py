@@ -2,7 +2,8 @@
 Refactored Master Training Orchestrator
 =========================================
 Triggers real-data ingestion, engineers features, splits datasets spatially,
-tunes models via Optuna, registers models, and audits performance for data leakage.
+tunes models via Optuna, trains PyTorch deep learning models, applies probability
+calibration, registers models, and audits performance for data leakage.
 
 Usage:
     cd backend
@@ -17,6 +18,20 @@ import json
 import numpy as np
 import pandas as pd
 from pathlib import Path
+import joblib
+import torch
+from sklearn.calibration import CalibratedClassifierCV
+
+# Resolve FrozenEstimator import based on scikit-learn version
+try:
+    from sklearn.frozen import FrozenEstimator
+    HAS_FROZEN = True
+except ImportError:
+    try:
+        from sklearn.calibration import FrozenEstimator
+        HAS_FROZEN = True
+    except ImportError:
+        HAS_FROZEN = False
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
@@ -30,8 +45,11 @@ from ml.spatial_validation import SpatialCV
 from ml.feature_engineering import feature_engineer
 from ml.flood_models import FloodModelSuite
 from ml.landslide_models import LandslideModelSuite
+from ml.deep_learning_models import (
+    FloodLSTM, FloodCNNLSTM, LandslideCNN, LandslideLSTM, PyTorchClassifierWrapper
+)
 from ml.evaluation import evaluator
-from ml.config import SEED, EXTENDED_FEATURES
+from ml.config import SEED
 
 MODEL_DIR = Path(__file__).resolve().parent.parent / "model_dir"
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
@@ -91,15 +109,8 @@ def train_advanced_pipeline():
     df_engineered = feature_engineer.engineer_features(df)
     
     # Get feature columns
-    base_cols = [c for c in EXTENDED_FEATURES if c in df_engineered.columns]
-    eng_cols = feature_engineer.get_engineered_feature_names()
-    all_feature_cols = base_cols + eng_cols
-    
+    all_feature_cols = feature_engineer.get_feature_names()
     print(f"  Total features for training: {len(all_feature_cols)}")
-    
-    X = df_engineered[all_feature_cols].values
-    y_flood = df_engineered["flood_label"].values
-    y_landslide = df_engineered["landslide_label"].values
     
     # 3. Spatial train/validation/test split
     print("\n[Step 3/6] Splitting datasets spatially (GroupKFold by State)...")
@@ -109,8 +120,8 @@ def train_advanced_pipeline():
     X_train_val, X_test, yf_train_val, yf_test, idx_train_val, idx_test = spatial_cv.get_train_test_split(
         df_engineered, all_feature_cols, "flood_label", test_size=0.20
     )
-    yl_train_val = y_landslide[idx_train_val]
-    yl_test = y_landslide[idx_test]
+    yl_train_val = df_engineered["landslide_label"].values[idx_train_val]
+    yl_test = df_engineered["landslide_label"].values[idx_test]
     
     # Split remainder spatially into train (80%) and validation (20%)
     df_train_val = df_engineered.iloc[idx_train_val].reset_index(drop=True)
@@ -127,33 +138,70 @@ def train_advanced_pipeline():
     X_val_scaled = feature_engineer.transform(X_val)
     X_test_scaled = feature_engineer.transform(X_test)
     
-    # Save fitted scaler and feature configuration
-    import joblib
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     
-    # Register V2 files
+    # Save fitted scaler and feature configuration
     joblib.dump(feature_engineer.scaler, MODEL_DIR / "scaler_v2.pkl")
     joblib.dump(all_feature_cols, MODEL_DIR / "feature_cols_v2.pkl")
     
-    # Register V1 versions for backward-compatibility self-healing support
+    # Save V1 versions for backward-compatibility fallback support
     joblib.dump(feature_engineer.scaler, MODEL_DIR / "scaler.pkl")
     joblib.dump(all_feature_cols, MODEL_DIR / "feature_cols.pkl")
     
     # 4. Train flood models (XGBoost, LightGBM, CatBoost with Optuna)
-    print("\n[Step 4/6] Training Flood Prediction Ensemble (Bayesian Tuning)...")
+    print("\n[Step 4/6] Training Flood Prediction Ensemble (Bayesian Tuning & Calibration)...")
     print("-" * 65)
     flood_suite = FloodModelSuite()
     flood_suite.train_all(X_train_scaled, yf_train, X_val_scaled, yf_val)
+    
+    # Calibrate Tree models on validation data
+    calibrated_flood_models = {}
+    for name, model in flood_suite.models.items():
+        logger.info(f"Calibrating Flood {name} model probabilities...")
+        if HAS_FROZEN:
+            frozen_model = FrozenEstimator(model)
+            calibrated_model = CalibratedClassifierCV(estimator=frozen_model, method="sigmoid")
+        else:
+            calibrated_model = CalibratedClassifierCV(estimator=model, method="sigmoid", cv="prefit")
+        calibrated_model.fit(X_val_scaled, yf_val)
+        calibrated_flood_models[name] = calibrated_model
+        
+    flood_suite.models = calibrated_flood_models
     flood_suite.save_models("flood_v2")
     
     # Save best single classifier (XGBoost) as V1 model for self-healing API fallback
     if "xgb" in flood_suite.models:
         joblib.dump(flood_suite.models["xgb"], MODEL_DIR / "xgb_flood.pkl")
-        logger.info("Saved Best Flood XGBoost model as V1 fallback.")
+        logger.info("Saved Best Calibrated Flood XGBoost model as V1 fallback.")
+
+    # Train Flood Deep Learning Models
+    print("\nTraining Flood Deep Learning models (LSTM & CNN-LSTM)...")
+    flood_lstm = PyTorchClassifierWrapper(FloodLSTM(), model_name="FloodLSTM")
+    flood_lstm.fit(X_train_scaled, yf_train, X_val_scaled, yf_val)
+    torch.save(flood_lstm.model.state_dict(), MODEL_DIR / "flood_v2_lstm.pth")
+    logger.info("Saved FloodLSTM model state.")
+
+    flood_cnnlstm = PyTorchClassifierWrapper(FloodCNNLSTM(), model_name="FloodCNNLSTM")
+    flood_cnnlstm.fit(X_train_scaled, yf_train, X_val_scaled, yf_val)
+    torch.save(flood_cnnlstm.model.state_dict(), MODEL_DIR / "flood_v2_cnn_lstm.pth")
+    logger.info("Saved FloodCNNLSTM model state.")
         
     # Evaluate flood suite
-    flood_results = evaluator.evaluate_suite(flood_suite.models, X_test_scaled, yf_test, "flood")
-    flood_ens_proba = flood_suite.ensemble_predict_proba(X_test_scaled)
+    eval_models = {k: v for k, v in flood_suite.models.items()}
+    eval_models["lstm"] = flood_lstm
+    eval_models["cnn_lstm"] = flood_cnnlstm
+    
+    flood_results = evaluator.evaluate_suite(eval_models, X_test_scaled, yf_test, "flood")
+    
+    # Ensemble blending prediction
+    flood_ens_proba = np.zeros(X_test_scaled.shape[0])
+    total_w = 0.0
+    for name, w in [("xgb", 0.35), ("lgb", 0.35), ("cat", 0.15), ("lstm", 0.075), ("cnn_lstm", 0.075)]:
+        if name in eval_models:
+            flood_ens_proba += eval_models[name].predict_proba(X_test_scaled)[:, 1] * w
+            total_w += w
+    flood_ens_proba /= total_w
+    
     flood_ens_pred = (flood_ens_proba >= 0.5).astype(int)
     flood_ens_metrics = evaluator.evaluate_model(yf_test, flood_ens_pred, flood_ens_proba, "flood_ensemble")
     flood_results["ensemble"] = flood_ens_metrics
@@ -162,20 +210,59 @@ def train_advanced_pipeline():
     audit_performance_leakage("Flood", flood_ens_metrics["accuracy"], df)
     
     # 5. Train landslide models (Random Forest, XGBoost, LightGBM with Optuna)
-    print("\n[Step 5/6] Training Landslide Susceptibility Ensemble (Bayesian Tuning)...")
+    print("\n[Step 5/6] Training Landslide Susceptibility Ensemble (Bayesian Tuning & Calibration)...")
     print("-" * 65)
     landslide_suite = LandslideModelSuite()
     landslide_suite.train_all(X_train_scaled, yl_train, X_val_scaled, yl_val)
+    
+    # Calibrate Tree models on validation data
+    calibrated_landslide_models = {}
+    for name, model in landslide_suite.models.items():
+        logger.info(f"Calibrating Landslide {name} model probabilities...")
+        if HAS_FROZEN:
+            frozen_model = FrozenEstimator(model)
+            calibrated_model = CalibratedClassifierCV(estimator=frozen_model, method="sigmoid")
+        else:
+            calibrated_model = CalibratedClassifierCV(estimator=model, method="sigmoid", cv="prefit")
+        calibrated_model.fit(X_val_scaled, yl_val)
+        calibrated_landslide_models[name] = calibrated_model
+        
+    landslide_suite.models = calibrated_landslide_models
     landslide_suite.save_models("landslide_v2")
     
     # Save best single classifier (Random Forest) as V1 model for self-healing API fallback
     if "rf" in landslide_suite.models:
         joblib.dump(landslide_suite.models["rf"], MODEL_DIR / "rf_landslide.pkl")
-        logger.info("Saved Best Landslide Random Forest model as V1 fallback.")
+        logger.info("Saved Best Calibrated Landslide Random Forest model as V1 fallback.")
+
+    # Train Landslide Deep Learning Models
+    print("\nTraining Landslide Deep Learning models (CNN & LSTM)...")
+    slide_cnn = PyTorchClassifierWrapper(LandslideCNN(), model_name="LandslideCNN")
+    slide_cnn.fit(X_train_scaled, yl_train, X_val_scaled, yl_val)
+    torch.save(slide_cnn.model.state_dict(), MODEL_DIR / "landslide_v2_cnn.pth")
+    logger.info("Saved LandslideCNN model state.")
+
+    slide_lstm = PyTorchClassifierWrapper(LandslideLSTM(), model_name="LandslideLSTM")
+    slide_lstm.fit(X_train_scaled, yl_train, X_val_scaled, yl_val)
+    torch.save(slide_lstm.model.state_dict(), MODEL_DIR / "landslide_v2_lstm.pth")
+    logger.info("Saved LandslideLSTM model state.")
         
     # Evaluate landslide suite
-    landslide_results = evaluator.evaluate_suite(landslide_suite.models, X_test_scaled, yl_test, "landslide")
-    landslide_ens_proba = landslide_suite.ensemble_predict_proba(X_test_scaled)
+    eval_slide_models = {k: v for k, v in landslide_suite.models.items()}
+    eval_slide_models["cnn"] = slide_cnn
+    eval_slide_models["lstm"] = slide_lstm
+    
+    landslide_results = evaluator.evaluate_suite(eval_slide_models, X_test_scaled, yl_test, "landslide")
+    
+    # Ensemble blending prediction
+    landslide_ens_proba = np.zeros(X_test_scaled.shape[0])
+    total_wl = 0.0
+    for name, w in [("rf", 0.25), ("xgb", 0.35), ("lgb", 0.20), ("cnn", 0.10), ("lstm", 0.10)]:
+        if name in eval_slide_models:
+            landslide_ens_proba += eval_slide_models[name].predict_proba(X_test_scaled)[:, 1] * w
+            total_wl += w
+    landslide_ens_proba /= total_wl
+    
     landslide_ens_pred = (landslide_ens_proba >= 0.5).astype(int)
     landslide_ens_metrics = evaluator.evaluate_model(yl_test, landslide_ens_pred, landslide_ens_proba, "landslide_ensemble")
     landslide_results["ensemble"] = landslide_ens_metrics
@@ -232,5 +319,4 @@ def train_advanced_pipeline():
 
 
 if __name__ == "__main__":
-    import pandas as pd # import pandas dynamically inside script if needed
     train_advanced_pipeline()
