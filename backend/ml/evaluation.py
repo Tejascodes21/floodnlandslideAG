@@ -13,12 +13,62 @@ from typing import Dict, List, Any
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score,
     roc_auc_score, confusion_matrix, classification_report,
-    average_precision_score, brier_score_loss, log_loss
+    average_precision_score, brier_score_loss, log_loss,
+    balanced_accuracy_score, matthews_corrcoef, cohen_kappa_score
 )
 from sklearn.model_selection import StratifiedKFold
 
 logger = logging.getLogger("geoshield.ml.evaluation")
 RESULTS_DIR = Path(__file__).parent / "results"
+
+
+def expected_calibration_error(y_true: np.ndarray, y_prob: np.ndarray, n_bins: int = 10):
+    """
+    Computes Expected Calibration Error (ECE) and Maximum Calibration Error (MCE).
+    """
+    bin_boundaries = np.linspace(0, 1, n_bins + 1)
+    ece = 0.0
+    mce = 0.0
+    for i in range(n_bins):
+        bin_lower = bin_boundaries[i]
+        bin_upper = bin_boundaries[i + 1]
+        in_bin = (y_prob >= bin_lower) & (y_prob < bin_upper)
+        prop_in_bin = np.mean(in_bin)
+        if prop_in_bin > 0:
+            accuracy_in_bin = np.mean(y_true[in_bin])
+            avg_confidence_in_bin = np.mean(y_prob[in_bin])
+            diff = np.abs(avg_confidence_in_bin - accuracy_in_bin)
+            ece += prop_in_bin * diff
+            mce = max(mce, diff)
+    return float(ece), float(mce)
+
+
+def mcnemar_test(y_true: np.ndarray, y_pred_a: np.ndarray, y_pred_b: np.ndarray):
+    """
+    Performs McNemar's statistical significance test between two models.
+    """
+    a_correct = (y_pred_a == y_true)
+    b_correct = (y_pred_b == y_true)
+    
+    n01 = np.sum(a_correct & ~b_correct)
+    n10 = np.sum(~a_correct & b_correct)
+    
+    if n01 + n10 == 0:
+        stat = 0.0
+        pval = 1.0
+    else:
+        # Edwards' continuity correction
+        stat = (abs(n01 - n10) - 1.0) ** 2 / (n01 + n10)
+        try:
+            from scipy.stats import chi2
+            pval = chi2.sf(stat, df=1)
+        except ImportError:
+            # Fallback normal approximation if scipy is not installed
+            from math import erf, sqrt
+            z = abs(n01 - n10) / sqrt(n01 + n10)
+            pval = 1.0 - erf(z / sqrt(2.0))
+            
+    return float(stat), float(pval)
 
 
 class ModelEvaluator:
@@ -32,9 +82,6 @@ class ModelEvaluator:
                        model_name: str = "Model") -> Dict:
         """
         Compute comprehensive classification metrics.
-        
-        Returns dictionary with accuracy, precision, recall, F1,
-        ROC-AUC, PR-AUC, Brier score, and confusion matrix.
         """
         metrics = {
             "model": model_name,
@@ -42,13 +89,22 @@ class ModelEvaluator:
             "precision": round(precision_score(y_true, y_pred, zero_division=0) * 100, 2),
             "recall": round(recall_score(y_true, y_pred, zero_division=0) * 100, 2),
             "f1_score": round(f1_score(y_true, y_pred, zero_division=0) * 100, 2),
+            "balanced_accuracy": round(balanced_accuracy_score(y_true, y_pred) * 100, 2),
+            "mcc": round(matthews_corrcoef(y_true, y_pred), 4),
+            "cohen_kappa": round(cohen_kappa_score(y_true, y_pred), 4)
         }
         
-        cm = confusion_matrix(y_true, y_pred)
+        cm = confusion_matrix(y_true, y_pred, labels=[0, 1])
+        tn, fp = cm[0, 0], cm[0, 1]
+        fn, tp = cm[1, 0], cm[1, 1]
+        
         metrics["confusion_matrix"] = {
-            "tn": int(cm[0, 0]), "fp": int(cm[0, 1]),
-            "fn": int(cm[1, 0]), "tp": int(cm[1, 1])
+            "tn": int(tn), "fp": int(fp),
+            "fn": int(fn), "tp": int(tp)
         }
+        
+        metrics["specificity"] = round(tn / max(tn + fp, 1) * 100, 2)
+        metrics["npv"] = round(tn / max(tn + fn, 1) * 100, 2)
         
         if y_proba is not None:
             try:
@@ -67,11 +123,9 @@ class ModelEvaluator:
                 metrics["log_loss"] = None
             
             metrics["brier_score"] = round(brier_score_loss(y_true, y_proba), 4)
-        
-        # Specificity and NPV
-        tn, fp, fn, tp = cm.ravel() if cm.shape == (2, 2) else (0, 0, 0, 0)
-        metrics["specificity"] = round(tn / max(tn + fp, 1) * 100, 2)
-        metrics["npv"] = round(tn / max(tn + fn, 1) * 100, 2)
+            ece, mce = expected_calibration_error(y_true, y_proba)
+            metrics["ece"] = round(ece, 4)
+            metrics["mce"] = round(mce, 4)
         
         return metrics
     
@@ -103,7 +157,6 @@ class ModelEvaluator:
             X_tr, X_val = X[train_idx], X[val_idx]
             y_tr, y_val = y[train_idx], y[val_idx]
             
-            # Clone and train
             from sklearn.base import clone
             try:
                 m = clone(model)
