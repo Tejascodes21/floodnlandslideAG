@@ -102,6 +102,7 @@ class CommunityReport(Base):
     incident_type = Column(String(100), nullable=False)  # Water Level Rise, Road Blockage, Mudslide, Other
     details = Column(Text, nullable=True)
     image_url = Column(String(500), nullable=True)
+    status = Column(String(50), default="Unverified", nullable=False)
     upvotes = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
 

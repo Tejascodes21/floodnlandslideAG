@@ -91,11 +91,17 @@ class GEEClient:
         ee.Initialize(credentials, project=self.project_id)
     
     def _init_app_default(self):
-        ee.Initialize(project=self.project_id)
+        if self.project_id and self.project_id != "mock-gee-project":
+            ee.Initialize(project=self.project_id)
+        else:
+            ee.Initialize()
     
     def _init_interactive(self):
         ee.Authenticate()
-        ee.Initialize(project=self.project_id)
+        if self.project_id and self.project_id != "mock-gee-project":
+            ee.Initialize(project=self.project_id)
+        else:
+            ee.Initialize()
     
     @property
     def is_live(self) -> bool:
