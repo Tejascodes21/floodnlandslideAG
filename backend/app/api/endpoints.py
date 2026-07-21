@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
+from datetime import datetime
 import joblib
 import numpy as np
 import json
@@ -100,6 +101,16 @@ class ChatRequest(BaseModel):
     lat: Optional[float] = None
     lon: Optional[float] = None
     lang: str = "en"
+
+class VolunteerDispatchRequest(BaseModel):
+    emergency_type: str = "Evacuation logistics"
+    details: str = ""
+    citizen_name: str = "Local Dispatch"
+    lat: Optional[float] = None
+    lon: Optional[float] = None
+
+class CommunityReportStatusUpdateRequest(BaseModel):
+    status: str
 
 class SystemSettingsOverride(BaseModel):
     extreme_threshold: float
@@ -419,6 +430,106 @@ def list_active_missions(db: Session = Depends(get_db)):
         })
     return res
 
+@router.post("/community/report/{report_id}/status")
+def update_report_status(report_id: int, req: CommunityReportStatusUpdateRequest, db: Session = Depends(get_db)):
+    report = db.query(CommunityReport).filter(CommunityReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    report.status = req.status
+    db.commit()
+    db.refresh(report)
+    return {"status": "success", "report_id": report.id, "new_status": report.status}
+
+@router.post("/volunteer/{volunteer_id}/dispatch")
+def dispatch_volunteer(volunteer_id: int, req: VolunteerDispatchRequest, db: Session = Depends(get_db)):
+    volunteer = db.query(Volunteer).filter(Volunteer.id == volunteer_id).first()
+    if not volunteer:
+        raise HTTPException(status_code=404, detail="Volunteer not found")
+    if volunteer.active:
+        raise HTTPException(status_code=400, detail="Volunteer already active on a mission")
+
+    target_lat = req.lat if req.lat is not None else volunteer.lat + 0.0025
+    target_lon = req.lon if req.lon is not None else volunteer.lon - 0.0025
+
+    nearest_shelter = rescue_service.find_nearest_shelter(target_lat, target_lon)
+    active_hazards = [{"lat": target_lat + 0.001, "lon": target_lon - 0.001}]
+    route_points = rescue_service.generate_safe_route(
+        start_lat=volunteer.lat,
+        start_lon=volunteer.lon,
+        end_lat=target_lat,
+        end_lon=target_lon,
+        hazard_zones=active_hazards
+    )
+
+    sos_alert = SOSAlert(
+        reporter_name=req.citizen_name,
+        phone="9999999900",
+        lat=target_lat,
+        lon=target_lon,
+        emergency_type=req.emergency_type,
+        details=req.details or f"Dispatched from volunteer dashboard for {req.citizen_name}",
+        voice_note_path=None,
+        status="Dispatched",
+        volunteer_id=volunteer.id
+    )
+    db.add(sos_alert)
+    volunteer.active = True
+    db.commit()
+    db.refresh(sos_alert)
+    db.refresh(volunteer)
+
+    mission = RescueMission(
+        volunteer_id=volunteer.id,
+        sos_id=sos_alert.id,
+        route_geojson=json.dumps(route_points),
+        status="Assigned"
+    )
+    db.add(mission)
+    db.commit()
+    db.refresh(mission)
+
+    alert_service._dispatch_channels(
+        req.citizen_name,
+        f"Volunteer {volunteer.full_name} dispatched for {req.emergency_type}.",
+        "Volunteer Dispatch",
+        "High"
+    )
+
+    return {
+        "status": "success",
+        "mission_id": mission.id,
+        "volunteer": {
+            "id": volunteer.id,
+            "full_name": volunteer.full_name,
+            "skills": volunteer.skills,
+            "vehicle_type": volunteer.vehicle_type,
+            "lat": volunteer.lat,
+            "lon": volunteer.lon,
+            "active": volunteer.active
+        },
+        "citizen": sos_alert.reporter_name,
+        "emergency_type": sos_alert.emergency_type,
+        "route": route_points,
+        "mission_status": mission.status,
+        "evacuation_camp": nearest_shelter,
+        "sos_id": sos_alert.id
+    }
+
+@router.post("/mission/{mission_id}/complete")
+def complete_mission(mission_id: int, db: Session = Depends(get_db)):
+    mission = db.query(RescueMission).filter(RescueMission.id == mission_id).first()
+    if not mission:
+        raise HTTPException(status_code=404, detail="Mission not found")
+    mission.status = "Completed"
+    mission.completed_at = datetime.utcnow()
+    if mission.volunteer:
+        mission.volunteer.active = False
+    if mission.sos_alert:
+        mission.sos_alert.status = "Resolved"
+    db.commit()
+    db.refresh(mission)
+    return {"status": "success", "mission_id": mission.id, "new_status": mission.status}
+
 # --- 4. COMMUNITY INCIDENT REPORTING ---
 
 @router.post("/community/report")
@@ -429,6 +540,7 @@ def submit_report(req: CommunityReportRequest, db: Session = Depends(get_db)):
         lon=req.lon,
         incident_type=req.incident_type,
         details=req.details,
+        status="Unverified",
         upvotes=1
     )
     db.add(report)
@@ -448,6 +560,7 @@ def get_reports(db: Session = Depends(get_db)):
             "incident_type": r.incident_type,
             "details": r.details,
             "image_url": r.image_url,
+            "status": r.status or "Unverified",
             "upvotes": r.upvotes,
             "created_at": r.created_at.isoformat() if r.created_at else None,
         }
