@@ -35,7 +35,10 @@ def startup_event():
     
     # 1.5 Initialize Earth Engine
     try:
-        ee.Initialize(project="geoai-flood-457823")
+        if settings.GEE_PROJECT and settings.GEE_PROJECT != "mock-gee-project":
+            ee.Initialize(project=settings.GEE_PROJECT)
+        else:
+            ee.Initialize()
         print("Earth Engine initialized successfully!")
     except Exception as e:
         print(f"Failed to initialize Earth Engine: {e}")
@@ -64,4 +67,4 @@ def read_root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
