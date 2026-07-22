@@ -8,6 +8,7 @@ import numpy as np
 import json
 from pathlib import Path
 
+from app.core.config import settings
 from app.db.session import get_db
 from app.db.schemas import PredictionRecord, SOSAlert, Volunteer, RescueMission, CommunityReport
 from app.services.earth_engine import gee_service
