@@ -37,7 +37,10 @@ class EarthEngineService:
                     print("Google Earth Engine service authenticated and initialized using service account.")
                 else:
                     try:
-                        ee.Initialize(project=self.project_id)
+                        if self.project_id and self.project_id != "mock-gee-project":
+                            ee.Initialize(project=self.project_id)
+                        else:
+                            ee.Initialize()
                         self.initialized = True
                         print("Google Earth Engine service initialized using default credentials.")
                     except Exception as default_err:
